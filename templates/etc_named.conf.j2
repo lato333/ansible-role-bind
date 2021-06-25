@@ -144,6 +144,7 @@ zone "{{ bind_zone.name }}" IN {
   forward only;
   forwarders { {{ bind_zone.forwarders|join('; ') }}; };
 {% endif %}
+{% if bind_zone.allow_query is defined and bind_zone.allow_query|length > 0 %}allow-query { {{ bind_zone.allow_query|join('; ') }}; };{% endif %}
 };
 {% endif %}
 {% if bind_zone.networks is defined %}
@@ -202,6 +203,7 @@ zone "{{ (network | ipaddr('revdns'))[-(9+(network|regex_replace('^.*/','')|int)
   forward only;
   forwarders { {{ bind_zone.forwarders|join('; ') }}; };
 {% endif %}
+{% if bind_zone.allow_query is defined and bind_zone.allow_query|length > 0 %}allow-query { {{ bind_zone.allow_query|join('; ') }}; };{% endif %}
 };
 {% endfor %}
 {% endif %}
