@@ -12,7 +12,11 @@
 {% if item.hostmaster_email is defined %}
 {% set _ = _zone_data.update({'rname': (( item.hostmaster_email )) + ('' if (item.hostmaster_email is search('\.')) else ('.' + _zone_data['domain']))}) %}
 {% else %}
+{% if bind_hostmaster_email is defined %}
+{% set _ = _zone_data.update({'rname': (( bind_hostmaster_email )) + ('' if (bind_hostmaster_email is search('\.')) else ('.' + _zone_data['domain']))}) %}
+{% else %}
 {% set _ = _zone_data.update({'rname': 'hostmaster.' + _zone_data['domain']}) %}
+{% endif %}
 {% endif %}
 {% set _ = _zone_data.update({'refresh': bind_zone_time_to_refresh}) %}
 {% set _ = _zone_data.update({'retry': bind_zone_time_to_retry}) %}
@@ -23,6 +27,8 @@
 {% set _ = _zone_data.update({'services': item.services|default([])}) %}
 {% set _ = _zone_data.update({'text': item.text|default([])}) %}
 {% set _ = _zone_data.update({'naptr': item.naptr|default([])}) %}
+{% set _ = _zone_data.update({'caas': item.caas|default([])}) %}
+{% set _ = _zone_data.update({'ptr': item.ptr|default([])}) %}
 {#
  #  Compare the zone file hash with the current zone data hash and set serial
  #  accordingly
@@ -47,9 +53,9 @@ $ORIGIN {{ _zone_data['domain'] }}.
 $TTL {{ _zone_data['ttl'] }}
 
 {% if _zone_data['mname']|length > 0 %}
-@ IN SOA {{ _zone_data['mname']|first }}{% if not _zone_data['mname']|first|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %} {{ _zone_data['rname'] }}. (
+@ IN SOA {{ _zone_data['mname'][0].server }}{% if not _zone_data['mname'][0].server|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %} {{ _zone_data['rname'] }}. (
 {% else %}
-@ IN SOA {{ ansible_hostname }}.{{ _zone_data['domain'] }}. {{ _zone_data['rname'] }}. (
+@ IN SOA {{ bind_default_ns[0].server }}{% if not bind_default_ns[0].server|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %} {{ _zone_data['rname'] }}. (
 {% endif %}
   {{ _zone['serial'] }}
   {{ _zone_data['refresh'] }}
@@ -59,23 +65,26 @@ $TTL {{ _zone_data['ttl'] }}
 
 {% if _zone_data['mname']|length > 0 %}
 {% for ns in _zone_data['mname'] %}
-                           IN  NS     {{ ns }}{% if not ns|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %}
+{% if ns.name is not defined %}{{'@'.ljust(40)}}{% else %}{{ (ns.name|string).ljust(40) }}{% endif %}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns.server }}{% if not ns.server|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %}
 
 {% endfor %}
 {% else %}
-                           IN  NS     {{ ansible_hostname }}.{{ _zone_data['domain'] }}.
+{% for ns in bind_default_ns %}
+{% if ns.name is not defined %}{{'@'.ljust(40)}}{% else %}{{ (ns.name|string).ljust(40) }}{% endif %}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns.server }}{% if not ns.server|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %}
+
+{% endfor %}
 {% endif %}
 {% for ns in _zone_data['aname'] %}
-                           IN  NS     {{ ns }}.
+{{'@'.ljust(40)}}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns }}.
 {% endfor %}
 
 {% for mail in _zone_data['mail'] %}
-{% if loop.first %}@{% else %} {% endif %}                          IN  MX     {{ mail.preference}}  {{ mail.name }}{% if not mail.name.endswith('.') %}.{{ _zone_data['domain'] }}.{% endif %} 
+{% if mail.name is not defined %}{{'@'.ljust(40)}}{% else %}{{ mail.name.ljust(40) }}{% endif %}{{ (mail.ttl|string).rjust(6) if mail.ttl is defined else ''.ljust(6) }} IN  MX     {{ mail.preference}}  {{ mail.host }}{% if not mail.host.endswith('.') %}.{{ _zone_data['domain'] }}.{% endif %} 
 {% endfor %}
 
 {% if _zone_data['delegate']|length > 0 %}
 {% for host in _zone_data['delegate'] %}
-{{ host.zone.ljust(20) }}       IN  NS     {{ host.dns }}
+{{ host.zone.ljust(40) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  NS     {{ host.dns }}
 {% endfor %}
 {% endif %}
 
@@ -84,57 +93,59 @@ $TTL {{ _zone_data['ttl'] }}
 {% if host.ip is defined %}
 {% if host.ip is string %}
 {% if "$GENERATE" not in host.name.upper() %}
-{{ host.name.ljust(20) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  A      {{ host.ip }}
+{{ host.name.ljust(40) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  A      {{ host.ip }}
 {% endif %}
 {% if "$GENERATE" in host.name.upper() %}
-{{ host.name.ljust(20) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  A      {{ host.ip }}
+{{ host.name.ljust(40) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  A      {{ host.ip }}
 {% endif %}
 {% else %}
 {% for ip in host.ip %}
-{{ host.name.ljust(20) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  A      {{ ip }}
+{{ host.name.ljust(40) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  A      {{ ip }}
 {% endfor %}
 {% endif %}
 {% endif %}
 {% if host.ipv6 is defined %}
 {% if host.ipv6 is string %}
-{{ host.name.ljust(20) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  AAAA   {{ host.ipv6 }}
+{{ host.name.ljust(40) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  AAAA   {{ host.ipv6 }}
 {% else %}
 {% for ip6 in host.ipv6 %}
-{{ host.name.ljust(20) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  AAAA   {{ ip6 }}
+{{ host.name.ljust(40) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  AAAA   {{ ip6 }}
 {% endfor %}
 {% endif %}
 {% endif %}
-{% if host.aliases is defined %}
-{% for alias in host.aliases %}
+{% if host.alias is defined %}
 {% if "$GENERATE" not in host.name.upper() %}
-{{ (alias.name|default(alias)).ljust(20) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  {{ alias.type|default('cname')|upper}}  {{ host.name }}
+{{ host.name.ljust(40) }}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN  {{ host.type|default('cname')|upper}}  {{ host.alias }}
 {% endif %}
 {% if "$GENERATE" in host.name.upper() %}
-{{ alias.ljust(20) }} IN  CNAME  {{ host.name.rsplit(None, 1)[1] }}
+{{ host.name.ljust(40) }} IN  CNAME  {{ host.alias }}
 {% endif %}
-{% endfor %}
 {% endif %}
 {% if host.sshfp is defined %}
 {% for sshfp in host.sshfp %}
-{{ host.name.ljust(20) }} IN SSHFP {{ sshfp}}
+{{ host.name.ljust(40) }}}{{ (host.ttl|string).rjust(6) if host.ttl is defined else ''.ljust(6) }} IN SSHFP {{ sshfp}}
 {% endfor %}
 {% endif %}
 {% endfor %}
-{% else %}
-{{ ansible_hostname.ljust(26) }} IN A     {{ ansible_default_ipv4.address }}
 {% endif %}
 {% for service in _zone_data['services'] %}
-{{ service.name.ljust(20) }}{{ (service.ttl|string).rjust(6) if service.ttl is defined else ''.ljust(6) }} IN  SRV    {{ service.priority|default('0') }} {{ service.weight|default('0') }} {{ service.port }} {{ service.target }}
+{{ service.name.ljust(40) }}{{ (service.ttl|string).rjust(6) if service.ttl is defined else ''.ljust(6) }} IN  SRV    {{ service.priority|default('0') }} {{ service.weight|default('0') }} {{ service.port }} {{ service.target }}
 {% endfor %}
 {% for text in _zone_data['text'] %}
 {% if text.text is string %}
-{{ text.name.ljust(20) }} IN  TXT    "{{ text.text }}"
+{{ text.name.ljust(40) }}{{ (text.ttl|string).rjust(6) if text.ttl is defined else ''.ljust(6) }} IN  TXT    "{{ text.text }}"
 {% else %}
 {%   for entry in text.text %}
-{{ text.name.ljust(20) }} IN  TXT    "{{ entry }}"
+{{ text.name.ljust(40) }}{{ (text.ttl|string).rjust(6) if text.ttl is defined else ''.ljust(6) }} IN  TXT    "{{ entry }}"
 {%   endfor %}
 {% endif %}
 {% endfor %}
 {% for naptr in _zone_data['naptr'] %}
-{{ naptr.name.ljust(20) }} IN  NAPTR  {{ naptr.order|default('100') }} {{ naptr.pref|default('10') }} "{{ naptr.flags }}" "{{ naptr.service }}" "{{ naptr.regex }}" {{ naptr.replacement }}
+{{ naptr.name.ljust(40) }}{{ (naptr.ttl|string).rjust(6) if naptr.ttl is defined else ''.ljust(6) }} IN  NAPTR  {{ naptr.order|default('100') }} {{ naptr.pref|default('10') }} "{{ naptr.flags }}" "{{ naptr.service }}" "{{ naptr.regex }}" {{ naptr.replacement }}
+{% endfor %}
+{% for caa in _zone_data['caas'] %}
+{{ caa.name.ljust(40) }}{{ (caa.ttl|string).rjust(6) if caa.ttl is defined else ''.ljust(6) }} IN  CAA  {{(caa.flag|string).rjust(4)}} {{caa.tag.ljust(10)}} "{{caa.value}}"
+{% endfor %}
+{% for ptr in _zone_data['ptr'] %}
+{{ (ptr.ip|string).ljust(20) }}{{ (ptr.ttl|string).rjust(6) if ptr.ttl is defined else ''.ljust(6) }} IN  PTR {{ptr.name}} 
 {% endfor %}
