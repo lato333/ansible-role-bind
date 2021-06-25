@@ -9,9 +9,13 @@
   changed_when: false
   check_mode: false
   register: forward_hashes_temp
+  when: >
+    (item.create_forward_zones is not defined or item.create_forward_zones) and
+    ((item.type is defined and item.type == 'primary') or
+    (item.type is not defined and item.primaries is defined and
+    (host_all_addresses | intersect(item.primaries) | length > 0))))
   with_items:
     - "{{ bind_zones }}"
-  run_once: true
   loop_control:
     label: "{{ item.name }}"
   tags: bind
@@ -21,7 +25,6 @@
     forward_hashes: "{{ forward_hashes|default([]) + [ {'hash': item.stdout|default(), 'name': item.item.name} ] }}"
   with_items:
     - "{{ forward_hashes_temp.results }}"
-  run_once: true
   loop_control:
     label: "{{ item.item.name }}"
   tags: bind
@@ -36,7 +39,6 @@
     - networks
     - flags:
       skip_missing: true
-  run_once: true
   loop_control:
     label: "{{ item.1 }}"
   tags: bind
@@ -47,7 +49,6 @@
   with_subelements:
     - "{{ reverse_hashes_temp.results }}"
     - item
-  run_once: true
   loop_control:
     label: "{{ item.1.name |default(item.0.cmd.split(' ')[4]) }}"
   tags: bind
@@ -62,7 +63,6 @@
     - ipv6_networks
     - flags:
       skip_missing: true
-  run_once: true
   loop_control:
     label: "{{ item.1 }}"
   tags: bind
@@ -73,7 +73,6 @@
   with_subelements:
     - "{{ reverse_hashes_ipv6_temp.results }}"
     - item
-  run_once: true
   loop_control:
     label: "{{ item.1.name |default(item.0.cmd.split(' ')[4]) }}"
   tags: bind
