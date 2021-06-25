@@ -5,3 +5,12 @@
     name: "{{ bind_service }}"
     state: reloaded
   become: yes
+- name: restart bind
+  service:
+    name: "{{ bind_service }}"
+    state: restarted
+  become: yes
+
+- name: rndc reconfig
+  shell: /usr/sbin/rndc reconfig
+  become: yes
