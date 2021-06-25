@@ -13,7 +13,7 @@
     (item.create_forward_zones is not defined or item.create_forward_zones) and
     ((item.type is defined and item.type == 'primary') or
     (item.type is not defined and item.primaries is defined and
-    (host_all_addresses | intersect(item.primaries) | length > 0))))
+    (host_all_addresses | intersect(item.primaries) | length > 0)))
   with_items:
     - "{{ bind_zones }}"
   loop_control:
