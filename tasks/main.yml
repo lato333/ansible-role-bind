@@ -8,10 +8,10 @@
     - "{{ ansible_os_family }}.yml"
   tags: bind
 
-- name: Check `primaries` or `forwarders` was set for each zone
+- name: Check `primaries` or `forwarders` was set for each zone or type is primary
   assert:
     that:
-      - item.primaries is defined or item.forwarders is defined
+      - item.primaries is defined or item.forwarders is defined or item.type == "primary"
     quiet: yes
   loop: "{{ bind_zones }}"
   loop_control:
@@ -102,7 +102,7 @@
     setype: named_conf_t
     validate: 'named-checkconf %s'
   become: yes
-  notify: reload bind
+  notify: restart bind
   tags: bind
 
 - name: Start BIND service
