@@ -65,21 +65,21 @@ $TTL {{ _zone_data['ttl'] }}
 
 {% if _zone_data['mname']|length > 0 %}
 {% for ns in _zone_data['mname'] %}
-{% if ns.name is not defined %}{{'@'.ljust(40)}}{% else %}{{ (ns.name|string).ljust(40) }}{% endif %}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns.server }}{% if not ns.server|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %}
+{% if ns.name is not defined %}{{ '@'.ljust(40) }}{% else %}{{ (ns.name|string).ljust(40) }}{% endif %}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns.server }}{% if not ns.server|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %}
 
 {% endfor %}
 {% else %}
 {% for ns in bind_default_ns %}
-{% if ns.name is not defined %}{{'@'.ljust(40)}}{% else %}{{ (ns.name|string).ljust(40) }}{% endif %}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns.server }}{% if not ns.server|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %}
+{% if ns.name is not defined %}{{ '@'.ljust(40) }}{% else %}{{ (ns.name|string).ljust(40) }}{% endif %}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns.server }}{% if not ns.server|regex_search('\.$') %}.{{ _zone_data['domain'] }}.{% endif %}
 
 {% endfor %}
 {% endif %}
 {% for ns in _zone_data['aname'] %}
-{{'@'.ljust(40)}}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns }}.
+{{ '@'.ljust(40) }}{{ (ns.ttl|string).rjust(6) if ns.ttl is defined else ''.ljust(6) }} IN  NS     {{ ns }}.
 {% endfor %}
 
 {% for mail in _zone_data['mail'] %}
-{% if mail.name is not defined %}{{'@'.ljust(40)}}{% else %}{{ mail.name.ljust(40) }}{% endif %}{{ (mail.ttl|string).rjust(6) if mail.ttl is defined else ''.ljust(6) }} IN  MX     {{ mail.preference}}  {{ mail.host }}{% if not mail.host.endswith('.') %}.{{ _zone_data['domain'] }}.{% endif %} 
+{% if mail.name is not defined %}{{ '@'.ljust(40) }}{% else %}{{ mail.name.ljust(40) }}{% endif %}{{ (mail.ttl|string).rjust(6) if mail.ttl is defined else ''.ljust(6) }} IN  MX     {{ mail.preference}}  {{ mail.host }}{% if not mail.host.endswith('.') %}.{{ _zone_data['domain'] }}.{% endif %} 
 {% endfor %}
 
 {% if _zone_data['delegate']|length > 0 %}
@@ -144,8 +144,8 @@ $TTL {{ _zone_data['ttl'] }}
 {{ naptr.name.ljust(40) }}{{ (naptr.ttl|string).rjust(6) if naptr.ttl is defined else ''.ljust(6) }} IN  NAPTR  {{ naptr.order|default('100') }} {{ naptr.pref|default('10') }} "{{ naptr.flags }}" "{{ naptr.service }}" "{{ naptr.regex }}" {{ naptr.replacement }}
 {% endfor %}
 {% for caa in _zone_data['caas'] %}
-{{ caa.name.ljust(40) }}{{ (caa.ttl|string).rjust(6) if caa.ttl is defined else ''.ljust(6) }} IN  CAA  {{(caa.flag|string).rjust(4)}} {{caa.tag.ljust(10)}} "{{caa.value}}"
+{{ caa.name.ljust(40) }}{{ (caa.ttl|string).rjust(6) if caa.ttl is defined else ''.ljust(6) }} IN  CAA  {{ (caa.flag|string).rjust(4) }} {{ caa.tag.ljust(10) }} "{{ caa.value }}"
 {% endfor %}
 {% for ptr in _zone_data['ptr'] %}
-{{ (ptr.ip|string).ljust(20) }}{{ (ptr.ttl|string).rjust(6) if ptr.ttl is defined else ''.ljust(6) }} IN  PTR {{ptr.name}} 
+{{ (ptr.ip|string).ljust(20) }}{{ (ptr.ttl|string).rjust(6) if ptr.ttl is defined else ''.ljust(6) }} IN  PTR {{ ptr.name }} 
 {% endfor %}
