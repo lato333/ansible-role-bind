@@ -12,5 +12,5 @@
   become: yes
 
 - name: rndc reconfig
-  shell: /usr/sbin/rndc reconfig
+  ansible.builtin.command: /usr/sbin/rndc reconfig
   become: yes
