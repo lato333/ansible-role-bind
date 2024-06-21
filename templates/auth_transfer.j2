@@ -7,9 +7,6 @@ server {{ primary }} {
 {% endfor %}
 
 {% endif %}
-server {{ ansible_default_ipv4.address }} {
-  keys { {% for mykey in bind_dns_keys %} {{ mykey.name }}; {% endfor %} };
-};
 
 {% for mykey in bind_dns_keys %}
 key {{ mykey.name }} {
