@@ -39,7 +39,7 @@ options {
   rrset-order { order {{ bind_rrset_order }}; };
 
 {% if bind_dnssec_enable is defined %}  dnssec-enable {{ bind_dnssec_enable }};{% endif %}
-  dnssec-validation {{ bind_dnssec_validation }};
+  dnssec-validation {% if bind_dnssec_validation %}yes{% else %}no{% endif %};
 
   /* Path to ISC DLV key */
   bindkeys-file "{{ bind_bindkeys_file }}";
